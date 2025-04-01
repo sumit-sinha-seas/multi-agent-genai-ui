@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+langchain
+langchain-openai
+langchain-community
+openai
+faiss-cpu
+python-multipart
+pydantic
+tqdm
+sentence-transformers
+pymupdf
+markdown
