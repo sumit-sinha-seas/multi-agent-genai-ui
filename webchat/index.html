@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Phinite Chatbot</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: auto;
+      padding: 20px;
+      background-color: #f6f6f6;
+    }
+    #chat-box {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 400px;
+      overflow-y: scroll;
+      background: white;
+      margin-bottom: 10px;
+    }
+    .message {
+      margin: 10px 0;
+    }
+    .user {
+      color: blue;
+    }
+    .bot {
+      color: green;
+    }
+    select, input, button {
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Phinite AI Assistant</h2>
+
+  <!-- Channel Selector -->
+  <label for="channel-select">Select Channel:</label>
+  <select id="channel-select">
+    <option value="chat">Chat</option>
+    <option value="email">Email</option>
+    <option value="ivr">IVR</option>
+  </select>
+
+  <!-- Chat Box -->
+  <div id="chat-box"></div>
+
+  <!-- Message Input -->
+  <input type="text" id="user-input" placeholder="Type your question..." style="width: 80%;">
+  <button onclick="sendMessage()">Send</button>
+
+  <hr>
+
+  <!-- File Upload UI -->
+  <h3>Upload a Knowledge File</h3>
+  <input type="file" id="file-upload" />
+  <button onclick="uploadFile()">Upload</button>
+  <p id="upload-status"></p>
+
+  <!-- File List -->
+  <h4>📂 Uploaded Documents:</h4>
+  <ul id="file-list"></ul>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const message = input.value;
+      const channel = document.getElementById("channel-select").value;
+
+      if (!message) return;
+
+      const chatBox = document.getElementById("chat-box");
+      chatBox.innerHTML += `<div class="message user"><strong>You (${channel}):</strong> ${message}</div>`;
+      input.value = "";
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: message, channel: channel })
+        });
+
+        const data = await response.json();
+        chatBox.innerHTML += `<div class="message bot"><strong>AI:</strong> ${data.response}</div>`;
+      } catch (error) {
+        chatBox.innerHTML += `<div class="message bot"><strong>AI:</strong> Sorry, an error occurred.</div>`;
+      }
+
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    async function uploadFile() {
+      const fileInput = document.getElementById("file-upload");
+      const file = fileInput.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const status = document.getElementById("upload-status");
+      status.innerText = "Uploading...";
+
+      try {
+        const response = await fetch("http://127.0.0.1:8000/upload", {
+          method: "POST",
+          body: formData
+        });
+        const result = await response.json();
+        status.innerText = result.message;
+        refreshFileList(); // ✅ update file list after upload
+      } catch (err) {
+        status.innerText = "Upload failed.";
+      }
+    }
+
+    async function refreshFileList() {
+      try {
+        const res = await fetch("http://127.0.0.1:8000/files");
+        const data = await res.json();
+        const fileList = document.getElementById("file-list");
+        fileList.innerHTML = "";
+
+        if (data.files.length === 0) {
+          fileList.innerHTML = "<li>No files uploaded yet.</li>";
+        } else {
+          data.files.forEach((file) => {
+            fileList.innerHTML += `<li>${file}</li>`;
+          });
+        }
+      } catch (err) {
+        console.error("Failed to fetch file list.");
+      }
+    }
+
+    // ✅ Refresh list on page load
+    window.onload = refreshFileList;
+  </script>
+</body>
+</html>
+
+
